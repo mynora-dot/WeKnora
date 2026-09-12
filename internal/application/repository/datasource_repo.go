@@ -86,6 +86,12 @@ func (r *DataSourceRepository) Update(ctx context.Context, ds *types.DataSource)
 		return errors.New("data source id is empty")
 	}
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if ds.Type == types.ConnectorTypeOutline {
+			return tx.Model(ds).Where("deleted_at IS NULL").Select(
+				"name", "config", "sync_schedule", "sync_mode", "status", "conflict_strategy",
+				"sync_deletions", "last_sync_cursor", "error_message", "sync_log_retention_days",
+			).Updates(ds).Error
+		}
 		if err := tx.Model(ds).Updates(ds).Error; err != nil {
 			return err
 		}
@@ -107,11 +113,15 @@ func (r *DataSourceRepository) UpdateSyncState(ctx context.Context, ds *types.Da
 	if ds.ID == "" {
 		return errors.New("data source id is empty")
 	}
+	var status interface{} = ds.Status
+	if ds.Type == types.ConnectorTypeOutline {
+		status = gorm.Expr("CASE WHEN status = ? THEN status ELSE ? END", types.DataSourceStatusPaused, ds.Status)
+	}
 	if err := r.db.WithContext(ctx).
 		Model(&types.DataSource{}).
-		Where("id = ?", ds.ID).
+		Where("id = ? AND deleted_at IS NULL", ds.ID).
 		Updates(map[string]interface{}{
-			"status":           ds.Status,
+			"status":           status,
 			"last_sync_at":     ds.LastSyncAt,
 			"last_sync_cursor": ds.LastSyncCursor,
 			"last_sync_result": ds.LastSyncResult,
@@ -121,6 +131,12 @@ func (r *DataSourceRepository) UpdateSyncState(ctx context.Context, ds *types.Da
 		return err
 	}
 	return nil
+}
+
+func (r *DataSourceRepository) Pause(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Model(&types.DataSource{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Update("status", types.DataSourceStatusPaused).Error
 }
 
 // Delete performs a soft delete
