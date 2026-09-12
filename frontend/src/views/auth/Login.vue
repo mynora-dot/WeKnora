@@ -1,4 +1,5 @@
 <template>
+  <div class="login-page">
   <div class="login-layout">
     <div class="animated-bg">
       <div class="knowledge-node node-1">
@@ -337,9 +338,12 @@
       </div>
     </div>
   </div>
+    <SiteFilingFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
+import SiteFilingFooter from '@/components/SiteFilingFooter.vue'
 import { ref, reactive, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
@@ -836,10 +840,17 @@ onMounted(async () => {
 </script>
 
 <style lang="less" scoped>
+.login-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .login-layout {
+  flex: 1;
   display: flex;
   width: 100%;
-  min-height: 100%;
+  min-height: auto;
   overflow: hidden;
   position: relative;
   background: linear-gradient(225deg, #022c22 0%, #064e3b 15%, #065f46 25%, #047857 38%, #059669 50%, #07C05F 65%, #10B981 78%, #34D399 90%, #6EE7B7 100%);

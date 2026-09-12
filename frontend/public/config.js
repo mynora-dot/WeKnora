@@ -6,4 +6,8 @@ window.__RUNTIME_CONFIG__ = {
   EMBED_BASE_URL: '',
   // Optional: default UI locale for first-time visitors (zh-CN | en-US | ru-RU | ko-KR | ja-JP)
   DEFAULT_LOCALE: '',
+  ICP_BEIAN_NUMBER: '',
+  PUBLIC_SECURITY_BEIAN_NUMBER: '',
+  PUBLIC_SECURITY_BEIAN_URL: '',
+  PUBLIC_SECURITY_BEIAN_ICON_URL: '',
 };

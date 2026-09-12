@@ -68,6 +68,8 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY nginx-api-proxy.conf /etc/nginx/api-proxy.conf
 COPY nginx-http.conf /etc/nginx/conf.d/00-weknora-http.conf
 
+RUN apk add --no-cache jq
+COPY filing-config.sh /filing-config.sh
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

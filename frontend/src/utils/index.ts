@@ -5,7 +5,7 @@ import { shouldRejectKnowledgeFileType } from "./fileTypeVerification";
 // 声明全局运行时配置类型
 declare global {
   interface Window {
-    __RUNTIME_CONFIG__?: {
+    __RUNTIME_CONFIG__?: import('./siteFiling').SiteFilingConfig & {
       MAX_FILE_SIZE_MB?: number;
       MAX_SKILL_BUNDLE_SIZE_MB?: number;
       DEFAULT_LOCALE?: string;

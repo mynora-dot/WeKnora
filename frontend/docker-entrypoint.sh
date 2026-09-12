@@ -24,6 +24,8 @@ window.__RUNTIME_CONFIG__ = {
 };
 EOF
 
+sh /filing-config.sh >> /usr/share/nginx/html/config.js || exit 1
+
 # 处理 nginx 配置。
 # 两个上限分开注入：全站保持知识库的 MAX_FILE_SIZE，只有技能 zip 上传的两条
 # 集合路由放宽到 MAX_SKILL_BUNDLE_SIZE（不含 /install、PATCH 等子路径）。
