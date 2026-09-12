@@ -1,9 +1,9 @@
 import { fileURLToPath, URL } from 'node:url'
 import { resolve, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 
@@ -28,6 +28,26 @@ function resolveFrontendCommit(): string {
 }
 
 const FRONTEND_COMMIT = resolveFrontendCommit()
+
+/** Match Docker runtime configuration without exposing private root .env values. */
+function filingConfigDev(): Plugin {
+  return {
+    name: 'filing-config-dev',
+    configureServer(server) {
+      const env = loadEnv(server.config.mode, resolve(__dirname, '..'), '')
+      const keys = ['ICP_BEIAN_NUMBER', 'PUBLIC_SECURITY_BEIAN_NUMBER',
+        'PUBLIC_SECURITY_BEIAN_URL', 'PUBLIC_SECURITY_BEIAN_ICON_URL']
+      const filing = Object.fromEntries(keys.map(key => [key, env[key] || '']))
+      const defaults = readFileSync(resolve(__dirname, 'public/config.js'), 'utf8')
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.split('?')[0] !== '/config.js') return next()
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+        res.setHeader('Cache-Control', 'no-store')
+        res.end(`${defaults}\nObject.assign(window.__RUNTIME_CONFIG__, ${JSON.stringify(filing)});\n`)
+      })
+    },
+  }
+}
 
 /** Dev parity with nginx: serve embed.html for /embed/:channelId (not the main SPA). */
 function embedHtmlDevFallback(): Plugin {
@@ -120,6 +140,7 @@ export default defineConfig({
     vue(),
     vueJsx(),
     embedHtmlDevFallback(),
+    filingConfigDev(),
   ],
   resolve: {
     alias: {
