@@ -674,8 +674,6 @@ func (s *DataSourceService) GetSyncLog(ctx context.Context, syncLogID string) (*
 
 // ProcessSync handles the actual sync operation (called by asynq task)
 func (s *DataSourceService) ProcessSync(ctx context.Context, task *asynq.Task) error {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Hour)
-	defer cancel()
 	var payload types.DataSourceSyncPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Errorf(ctx, "failed to unmarshal sync payload: %v", err)
@@ -701,6 +699,9 @@ func (s *DataSourceService) ProcessSync(ctx context.Context, task *asynq.Task) e
 	}
 
 	if ds.Type == types.ConnectorTypeOutline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 2*time.Hour)
+		defer cancel()
 		var release func()
 		ctx, release, err = datasource.DefaultSyncLocks.Acquire(ctx, ds.TenantID, ds.ID)
 		if errors.Is(err, datasource.ErrSyncRunning) {
@@ -1138,6 +1139,58 @@ func (h *streamSyncHandler) EmitWithResult(ctx context.Context, item types.Fetch
 	h.result.Total++
 	outcome := h.svc.applyFetchedItem(withKBActivitySuppressed(ctx), h.ds, &item, h.tagIDs, h.result)
 	return outcome, ctx.Err()
+}
+
+// WalkSyncedItems recovers source identities even if a previous connector
+// discarded their cursor entries after the user changed its selected scope.
+// Page through metadata only; never read all stored document bodies into memory.
+func (h *streamSyncHandler) WalkSyncedItems(ctx context.Context, visit func(types.FetchedItem) error) error {
+	const pageSize = 200
+	afterID := ""
+	repo := h.svc.knowledgeService.GetRepository()
+	reader, ok := repo.(interfaces.DataSourceKnowledgeMetadataReader)
+	if !ok {
+		return errors.New("data source metadata reader unavailable")
+	}
+	for {
+		if err := h.checkAlive(ctx); err != nil {
+			return err
+		}
+		rows, err := reader.ListDataSourceKnowledgeMetadata(
+			ctx, h.ds.TenantID, h.ds.KnowledgeBaseID, h.ds.ID, afterID, pageSize)
+		if err != nil {
+			return err
+		}
+		for _, row := range rows {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if row.Channel != h.ds.Type {
+				continue
+			}
+			var metadata map[string]string
+			if err := json.Unmarshal(row.Metadata, &metadata); err != nil {
+				return fmt.Errorf("invalid synced document metadata: %w", err)
+			}
+			if metadata["datasource_id"] != h.ds.ID || metadata["external_id"] == "" {
+				continue
+			}
+			if err := visit(types.FetchedItem{
+				ExternalID: metadata["external_id"], SourceResourceID: metadata["collection_id"],
+				Metadata: metadata,
+			}); err != nil {
+				return err
+			}
+		}
+		if len(rows) < pageSize {
+			return nil
+		}
+		nextID := rows[len(rows)-1].ID
+		if nextID <= afterID {
+			return errors.New("synced document metadata pagination did not advance")
+		}
+		afterID = nextID
+	}
 }
 
 // Checkpoint persists the connector cursor onto the data source and mirrors the

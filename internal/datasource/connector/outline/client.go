@@ -212,6 +212,8 @@ func (c *client) call(ctx context.Context, method string, body map[string]interf
 func (c *client) walk(ctx context.Context, method string, body map[string]interface{}, page func([]json.RawMessage) error) error {
 	offset, limit := 0, 25
 	seen := map[string]bool{}
+	var expectedTotal *int
+	var hasTotal *bool
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -224,6 +226,20 @@ func (c *client) walk(ctx context.Context, method string, body map[string]interf
 		}
 		if err != nil {
 			return err
+		}
+		currentHasTotal := result.Pagination.Total != nil
+		if hasTotal == nil {
+			hasTotal = &currentHasTotal
+		} else if *hasTotal != currentHasTotal {
+			return errors.New("outline_scan_incomplete")
+		}
+		if currentHasTotal {
+			if expectedTotal == nil {
+				total := *result.Pagination.Total
+				expectedTotal = &total
+			} else if *expectedTotal != *result.Pagination.Total {
+				return errors.New("outline_scan_incomplete")
+			}
 		}
 		var rows []json.RawMessage
 		if json.Unmarshal(result.Data, &rows) != nil {
@@ -246,13 +262,16 @@ func (c *client) walk(ctx context.Context, method string, body map[string]interf
 				fresh = append(fresh, raw)
 			}
 		}
-		if len(rows) > 0 && len(fresh) == 0 {
+		if len(fresh) != len(rows) {
 			return errors.New("outline_scan_incomplete")
 		}
 		if err := page(fresh); err != nil {
 			return err
 		}
 		if terminal {
+			if expectedTotal != nil && len(seen) != *expectedTotal {
+				return errors.New("outline_scan_incomplete")
+			}
 			return nil
 		}
 		offset, limit = next, pageLimit

@@ -93,6 +93,13 @@ type AcknowledgingStreamHandler interface {
 	EmitWithResult(context.Context, types.FetchedItem) (ApplyResult, error)
 }
 
+// SyncedItemReader exposes only persisted source identities and metadata. A
+// connector can recover reconciliation candidates lost by older cursor formats
+// without loading document bodies or assuming they are safe to delete.
+type SyncedItemReader interface {
+	WalkSyncedItems(context.Context, func(types.FetchedItem) error) error
+}
+
 type FullSyncCursorPreparer interface {
 	PrepareFullSyncCursor(*types.SyncCursor) (*types.SyncCursor, error)
 }

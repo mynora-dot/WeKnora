@@ -812,6 +812,24 @@ func (r *knowledgeRepository) FindByDataSourceExternalID(
 	return &knowledge, nil
 }
 
+func (r *knowledgeRepository) ListDataSourceKnowledgeMetadata(
+	ctx context.Context, tenantID uint64, kbID, dataSourceID, afterID string, limit int,
+) ([]*types.Knowledge, error) {
+	if tenantID == 0 || kbID == "" || dataSourceID == "" || limit <= 0 || limit > 1000 {
+		return nil, errors.New("invalid data source metadata query scope or limit")
+	}
+	var rows []*types.Knowledge
+	query := r.db.WithContext(ctx).Model(&types.Knowledge{}).
+		Select("id", "channel", "metadata").
+		Where("tenant_id = ? AND knowledge_base_id = ? AND deleted_at IS NULL", tenantID, kbID).
+		Where("metadata->>'datasource_id' = ?", dataSourceID)
+	if afterID != "" {
+		query = query.Where("id > ?", afterID)
+	}
+	err := query.Order("id ASC").Limit(limit).Find(&rows).Error
+	return rows, err
+}
+
 // HardDeleteKnowledge physically removes a knowledge row. Call it AFTER
 // DeleteKnowledge's soft-delete cascade so sync-internal deletions never
 // become tombstones that block a later re-sync of the same external item.

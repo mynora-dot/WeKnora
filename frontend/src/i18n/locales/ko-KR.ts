@@ -769,6 +769,7 @@ export default {
     syncScheduleLabel: '동기화 주기',
     conflictLabel: '충돌 전략',
     syncDeletions: '삭제 동기화 (소스에서 삭제 시 지식베이스에서도 삭제)',
+    syncDeletionsOutline: '삭제 동기화 (동기화 시 소스에서 삭제되거나 선택 범위에서 제외된 문서를 정리합니다. 선택 해제한 컬렉션도 포함됩니다)',
     createAndSync: '생성 후 즉시 동기화',
     createAndSyncSuccess: '데이터 소스가 생성되었으며 동기화 작업이 제출되었습니다',
     createButSyncFailed: '데이터 소스가 생성되었으나 동기화 트리거에 실패했습니다',

@@ -87,9 +87,14 @@ func (s *knowledgeService) CreateKnowledgeFromFile(ctx context.Context,
 	// Check if file already exists
 	tenantID := ctx.Value(types.TenantIDContextKey).(uint64)
 	logger.Infof(ctx, "Checking if file exists, tenant ID: %d", tenantID)
+	var dataSourceID, externalID string
+	if channel == types.ChannelOutline {
+		dataSourceID = metadata["datasource_id"]
+		externalID = metadata["external_id"]
+	}
 	exists, existingKnowledge, err := s.repo.CheckKnowledgeExists(ctx, tenantID, kbID, &types.KnowledgeCheckParams{
-		DataSourceID: metadata["datasource_id"],
-		ExternalID:   metadata["external_id"],
+		DataSourceID: dataSourceID,
+		ExternalID:   externalID,
 		Type:         "file",
 		FileName:     fileName,
 		FileType:     getFileType(fileName),

@@ -292,8 +292,8 @@ func TestMoveAcrossCollectionsAndDeselect(t *testing.T) {
 	h = &acknowledger{}
 	next, err = c.FetchStream(context.Background(), cfg, next, h)
 	s, _ := parseCursor(next)
-	if err != nil || len(h.items) != 0 || len(s.Documents) != 0 {
-		t.Fatal("deselection did not preserve copies and remove baseline")
+	if err != nil || len(h.items) != 1 || !h.items[0].IsDeleted || len(s.Documents) != 0 {
+		t.Fatal("deselection did not reconcile the old copy")
 	}
 }
 

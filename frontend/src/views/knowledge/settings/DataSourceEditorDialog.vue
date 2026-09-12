@@ -1844,7 +1844,7 @@ const drawerConfirmText = computed(() => {
         </div>
 
         <div class="form-item form-item--flat">
-          <t-checkbox v-model="form.sync_deletions">{{ t('datasource.syncDeletions') }}</t-checkbox>
+          <t-checkbox v-model="form.sync_deletions">{{ t(form.type === 'outline' ? 'datasource.syncDeletionsOutline' : 'datasource.syncDeletions') }}</t-checkbox>
         </div>
       </section>
     </template>

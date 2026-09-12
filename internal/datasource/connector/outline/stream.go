@@ -48,11 +48,29 @@ func (connector *Connector) FetchStream(ctx context.Context, config *types.DataS
 	for _, id := range ids {
 		selected[id] = true
 	}
-	for id, old := range s.Documents {
-		if !selected[old.CollectionID] {
-			delete(s.Documents, id)
-			delete(s.PendingUpserts, id)
-			delete(s.PendingDeletions, id)
+	// Keep documents from deselected collections until a complete scan and
+	// detail recheck confirm that they no longer belong to the selected scope.
+	// Older releases dropped these identities but kept their local copies.
+	if reader, ok := handler.(datasource.SyncedItemReader); ok {
+		if err := reader.WalkSyncedItems(ctx, func(item types.FetchedItem) error {
+			if _, known := s.Documents[item.ExternalID]; known || selected[item.SourceResourceID] {
+				return nil
+			}
+			if item.ExternalID == "" || item.SourceResourceID == "" ||
+				item.Metadata["source_fingerprint"] == "" ||
+				item.Metadata["outline_workspace_id"] != instance.WorkspaceID {
+				return nil
+			}
+			if _, err := sourceURL(instance.BaseURL, item.Metadata["source_url"]); err != nil {
+				return nil
+			}
+			s.Documents[item.ExternalID] = version{
+				CollectionID: item.SourceResourceID, Fingerprint: item.Metadata["source_fingerprint"],
+				UpdatedAt: item.Metadata["source_updated_at"],
+			}
+			return nil
+		}); err != nil {
+			return s.cursor(), err
 		}
 	}
 	for id, collectionID := range s.PendingUpserts {

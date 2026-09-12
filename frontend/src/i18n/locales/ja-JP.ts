@@ -6385,6 +6385,7 @@ export default {
       skip: '既存をスキップ'
     },
     syncDeletions: '削除を同期（同期元で削除されたナレッジをナレッジベースからも削除）',
+    syncDeletionsOutline: '削除を同期（同期時に、同期元で削除された文書や選択範囲外の文書を削除。選択解除したコレクションも対象）',
     createAndSync: '作成して今すぐ同期',
     createAndSyncSuccess: 'データソースを作成し、同期タスクを送信しました',
     createButSyncFailed: 'データソースを作成しましたが、同期の開始に失敗しました',

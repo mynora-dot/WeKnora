@@ -771,6 +771,7 @@ export default {
     syncScheduleLabel: '同步频率',
     conflictLabel: '冲突策略',
     syncDeletions: '同步删除（源端删除时同步删除知识库中的条目）',
+    syncDeletionsOutline: '同步删除（同步时清理源端已删除或已移出所选 Collection 的文档，含取消选择的 Collection）',
     createAndSync: '创建并立即同步',
     createAndSyncSuccess: '数据源创建成功，同步任务已提交',
     createButSyncFailed: '数据源已创建，但触发同步失败',

@@ -358,3 +358,12 @@ type KnowledgeRepository interface {
 	// DeleteKnowledgeTagRelations deletes all tag relations for a knowledge entry.
 	DeleteKnowledgeTagRelations(ctx context.Context, knowledgeID string) error
 }
+
+// DataSourceKnowledgeMetadataReader reads only live source identities and
+// metadata for reconciliation. It is optional so existing repository fakes and
+// third-party implementations remain source-compatible.
+type DataSourceKnowledgeMetadataReader interface {
+	ListDataSourceKnowledgeMetadata(
+		ctx context.Context, tenantID uint64, kbID, dataSourceID, afterID string, limit int,
+	) ([]*types.Knowledge, error)
+}
