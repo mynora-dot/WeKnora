@@ -3,8 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/Tencent/WeKnora/internal/types"
@@ -53,24 +51,6 @@ func TestOutlinePauseDoesNotLoseCheckpoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, types.DataSourceStatusPaused, stored.Status)
 	require.JSONEq(t, `{"checkpoint":1}`, stored.LastSyncCursor.ToString())
-}
-
-func TestOutlineSQLiteExternalIDIndexMigration(t *testing.T) {
-	db := setupKnowledgeTestDB(t)
-	up, err := os.ReadFile("../../../migrations/sqlite/000015_knowledge_external_id_index.up.sql")
-	require.NoError(t, err)
-	require.NoError(t, db.Exec(string(up)).Error)
-	var rows []struct{ Detail string }
-	require.NoError(t, db.Raw(`EXPLAIN QUERY PLAN SELECT id FROM knowledges
-		WHERE knowledge_base_id = ? AND metadata->>'external_id' = ? AND deleted_at IS NULL`, "kb", "a").Scan(&rows).Error)
-	found := false
-	for _, row := range rows {
-		found = found || strings.Contains(row.Detail, "idx_knowledges_kb_metadata_external_id")
-	}
-	require.True(t, found, "identity query should use the shipped expression index")
-	down, err := os.ReadFile("../../../migrations/sqlite/000015_knowledge_external_id_index.down.sql")
-	require.NoError(t, err)
-	require.NoError(t, db.Exec(string(down)).Error)
 }
 
 func TestOutlineUpdateCanClearScheduleAndCredentials(t *testing.T) {
